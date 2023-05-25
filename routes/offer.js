@@ -19,7 +19,7 @@ const Offer = require("../models/Offer");
 const isAuthenticated = require("../middleware/isAuthenticated");
 
 // Import des datas (ne pas en tenir compte, cela sert au reset de la BDD entre 2 sessions de formation)
-const products = require("../data/products.json");
+// const products = require("../data/products.json");
 
 // Route qui nous permet de récupérer une liste d'annonces, en fonction de filtres
 // Si aucun filtre n'est envoyé, cette route renverra l'ensemble des annonces

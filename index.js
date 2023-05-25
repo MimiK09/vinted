@@ -22,7 +22,7 @@ cloudinary.config({
 
 const userRoutes = require("./routes/user");
 const offerRoutes = require("./routes/offer");
-const paymentRoutes = require("./routes/payment");
+// const paymentRoutes = require("./routes/payment");
 app.use(userRoutes);
 app.use(offerRoutes);
 // app.use(paymentRoutes);
@@ -31,7 +31,7 @@ app.get("/", (req, res) => {
   res.json("Bienvenue sur l'API de Vinted");
 });
 
-const server = app.listen(process.env.PORT || 4000, () => {
-  console.log("Server started");
+const server = app.listen(process.env.PORT, () => {
+  console.log("Server started 🚀");
 });
 //server.timeout = Number(process.env.SERVER_TIMEOUT) || 1000000;
