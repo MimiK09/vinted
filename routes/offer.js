@@ -5,9 +5,9 @@ const router = express.Router();
 // Import du package cloudinary
 const cloudinary = require("cloudinary").v2;
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+	cloud_name: process.env.CLOUDINARY_NAME,
+	api_key: process.env.CLOUDINARY_API_KEY,
+	api_secret: process.env.CLOUDINARY_API_KEY_SECRET,
 });
 
 // Import de express file upload
@@ -125,57 +125,81 @@ router.post(
 	fileUpload(),
 	async (req, res) => {
 		// Route qui permet de poster une nouvelle annonce, elle utilise le middleware fileUpload afin de pouvoir lire les body de type formData. Seul quelqu'un de connecté peut faire cette requête.
-		try {const userTofind = await User.findOne({
-      token: req.headers.authorization.replace("Bearer ", ""),
-    });
-    const user_id = userTofind._id;
+		try {
+			const userTofind = await User.findOne({
+				token: req.headers.authorization.replace("Bearer ", ""),
+			});
+			const user_id = userTofind._id;
 
-    if (req.body.description.length > 500) {
-      return res.status(200).json({ message: "description trop longue" });
-    }
-    if (req.body.title.length > 50) {
-      return res.status(200).json({ message: "titre trop long" });
-    }
-    if (req.body.price > 100000) {
-      return res.status(200).json({ message: "prix trop élevé" });
-    }
-    const newOffer = new Offer({
-      product_name: req.body.title,
-      product_description: req.body.description,
-      product_price: req.body.price,
-      product_details: [
-        { product_city: req.body.city },
-        { product_state: req.body.condition },
-        { product_brand: req.body.brand },
-        { product_size: req.body.size },
-        { product_color: req.body.color },
-      ],
-      owner: user_id,
-    });
+			if (req.body.description.length > 500) {
+				return res.status(200).json({ message: "description trop longue" });
+			}
+			if (req.body.title.length > 50) {
+				return res.status(200).json({ message: "titre trop long" });
+			}
+			if (req.body.price > 100000) {
+				return res.status(200).json({ message: "prix trop élevé" });
+			}
+			const newOffer = new Offer({
+				product_name: req.body.title,
+				product_description: req.body.description,
+				product_price: req.body.price,
+				product_details: [
+					{ product_city: req.body.city },
+					{ product_state: req.body.condition },
+					{ product_brand: req.body.brand },
+					{ product_size: req.body.size },
+					{ product_color: req.body.color },
+				],
+				owner: user_id,
+			});
 
-    await newOffer.save();
-    console.log("ca marche", newOffer)
+			await newOffer.save();
 
-    if (req.files) {
+			if (req.files) {
+				if (!Array.isArray(req.files.picture)) {
+					const pictureToUpload = convertToBase64(req.files.picture);
 
-      console.log("ca marche2", newOffer)
-      const pictureToUpload = convertToBase64(req.files.picture);
-      const result = await cloudinary.uploader.upload(pictureToUpload, {
-        folder: `vinted2/offers/${newOffer._id}`,
-      });
-      newOffer.product_image = result.secure_url;
-      console.log("ca marche plus", newOffer)
-      await newOffer.save();
-    } else {
-      console.log(
-        "une annonce avec image a 3 fois plus de chances d'être vendue"
-      );
-    }
+					const result = await cloudinary.uploader.upload(pictureToUpload, {
+						folder: `vinted2/offers/${newOffer._id}`,
+					});
 
-    console.log(newOffer);
-    return res.status(200).json({ message: "offre créée", Offre: newOffer });
+					newOffer.product_image = result.secure_url;
+
+					await newOffer.save();
+				} else {
+					newOffer.product_pictures = [];
+					let picturesToUpdate = req.files.picture;
+
+					for (let i = 0; i < picturesToUpdate.length; i++) {
+						if (i === 0) {
+							const pictureToUpload = convertToBase64(picturesToUpdate[i]);
+
+							const result = await cloudinary.uploader.upload(pictureToUpload, {
+								folder: `vinted2/offers/${newOffer._id}`,
+							});
+							newOffer.product_image = result.secure_url;
+							newOffer.product_pictures.push(result.secure_url);
+						} else {
+							const pictureToUpload = convertToBase64(picturesToUpdate[i]);
+
+							const result = await cloudinary.uploader.upload(pictureToUpload, {
+								folder: `vinted2/offers/${newOffer._id}`,
+							});
+							newOffer.product_pictures.push(result.secure_url);
+						}
+					}
+				}
+			} else {
+				console.log(
+					"une annonce avec image a 3 fois plus de chances d'être vendue"
+				);
+			}
+
+			console.log(newOffer);
+			return res.status(200).json({ message: "offre créée", Offre: newOffer });
 		} catch (error) {
-			console.log(error.message);
+			console.log(error);
 			res.status(500).json({ message: error.message });
 		}
 	}
@@ -269,10 +293,10 @@ router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
 	try {
 		//Je supprime ce qui il y a dans le dossier portant le nom de l'id de l'offre sur cloudinary
 		await cloudinary.api.delete_resources_by_prefix(
-			`api/vinted-v2/offers/${req.params.id}`
+			`vinted2/offers/${req.params.id}`
 		);
 		//Une fois le dossier vide, je peux le supprimer !
-		await cloudinary.api.delete_folder(`api/vinted-v2/offers/${req.params.id}`);
+		await cloudinary.api.delete_folder(`vinted2/offers/${req.params.id}`);
 		// Je vais chercher l'offre dans mongoDB
 		offerToDelete = await Offer.findById(req.params.id);
 		// Je la supprime
@@ -285,103 +309,103 @@ router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
 
 // CETTE ROUTE SERT AU RESET DE LA BDD ENTRE 2 SESSIONS DE FORMATION. CELA NE FAIT PAS PARTIE DE L'EXERCICE.
 // RESET ET INITIALISATION BDD
-router.get("/reset-offers", fileUpload(), async (req, res) => {
-	const token = req.headers.authorization.replace("Bearer ", "");
+// router.get("/reset-offers", fileUpload(), async (req, res) => {
+// 	const token = req.headers.authorization.replace("Bearer ", "");
 
-	if (token !== process.env.ADMIN_TOKEN) {
-		return res.status(401).json({ error: "Unauthorized" });
-	}
+// 	if (token !== process.env.ADMIN_TOKEN) {
+// 		return res.status(401).json({ error: "Unauthorized" });
+// 	}
 
-	const allUserId = await User.find().select("_id");
-	// Il y a 21 users dans le fichier owners.json
-	if (allUserId.length > 22) {
-		return res
-			.status(400)
-			.send(
-				"Il faut d'abord reset la BDD de users. Voir la route /reset-users"
-			);
-	} else {
-		// Supprimer toutes images dudossier offers
-		const offers = await Offer.find();
-		try {
-			//   const deleteResources = await cloudinary.api.delete_resources_by_prefix(
-			//     "api/vinted-v2/offers"
-			//   );
-			// } catch (error) {
-			//   res.status(500).json({ message: error.message });
-			// }
-			// // On supprime les dossiers qui sont, maintenant, vides
-			// try {
-			//   const folderDeletionPromises = offers.map((offer) => {
-			//     if (offer.product_image) {
-			//       return cloudinary.api.delete_folder(
-			//         `/api/vinted-v2/offers/${offer._id}`
-			//       );
-			//     } else {
-			//       return null;
-			//     }
-			//   });
+// 	const allUserId = await User.find().select("_id");
+// 	// Il y a 21 users dans le fichier owners.json
+// 	if (allUserId.length > 22) {
+// 		return res
+// 			.status(400)
+// 			.send(
+// 				"Il faut d'abord reset la BDD de users. Voir la route /reset-users"
+// 			);
+// 	} else {
+// 		// Supprimer toutes images dudossier offers
+// 		const offers = await Offer.find();
+// 		try {
+//   const deleteResources = await cloudinary.api.delete_resources_by_prefix(
+//     "api/vinted-v2/offers"
+//   );
+// } catch (error) {
+//   res.status(500).json({ message: error.message });
+// }
+// // On supprime les dossiers qui sont, maintenant, vides
+// try {
+//   const folderDeletionPromises = offers.map((offer) => {
+//     if (offer.product_image) {
+//       return cloudinary.api.delete_folder(
+//         `/api/vinted-v2/offers/${offer._id}`
+//       );
+//     } else {
+//       return null;
+//     }
+//   });
 
-			//   await Promise.all(folderDeletionPromises);
+//   await Promise.all(folderDeletionPromises);
 
-			// Vider la collection Offer
-			await Offer.deleteMany({});
-		} catch (error) {
-			res.status(500).json({ message: error.message });
-		}
+// Vider la collection Offer
+// 			await Offer.deleteMany({});
+// 		} catch (error) {
+// 			res.status(500).json({ message: error.message });
+// 		}
 
-		// Créer les annonces à partir du fichier products.json
-		for (let i = 0; i < products.length; i++) {
-			try {
-				// Création de la nouvelle annonce
-				const newOffer = new Offer({
-					product_name: products[i].product_name,
-					product_description: products[i].product_description,
-					product_price: products[i].product_price,
-					product_details: products[i].product_details,
-					// créer des ref aléatoires
-					owner: allUserId[Math.floor(Math.random() * allUserId.length)],
-				});
+// 		// Créer les annonces à partir du fichier products.json
+// 		for (let i = 0; i < products.length; i++) {
+// 			try {
+// 				// Création de la nouvelle annonce
+// 				const newOffer = new Offer({
+// 					product_name: products[i].product_name,
+// 					product_description: products[i].product_description,
+// 					product_price: products[i].product_price,
+// 					product_details: products[i].product_details,
+// 					// créer des ref aléatoires
+// 					owner: allUserId[Math.floor(Math.random() * allUserId.length)],
+// 				});
 
-				// Uploader l'image principale du produit
+// 				// Uploader l'image principale du produit
 
-				const resultImage = await cloudinary.uploader.upload(
-					products[i].product_image.secure_url,
-					{
-						folder: `api/vinted-v2/offers/${newOffer._id}`,
-						public_id: "preview",
-					}
-				);
+// 				const resultImage = await cloudinary.uploader.upload(
+// 					products[i].product_image.secure_url,
+// 					{
+// 						folder: `api/vinted-v2/offers/${newOffer._id}`,
+// 						public_id: "preview",
+// 					}
+// 				);
 
-				// Uploader les images de chaque produit
-				newProduct_pictures = [];
-				for (let j = 0; j < products[i].product_pictures.length; j++) {
-					try {
-						const resultPictures = await cloudinary.uploader.upload(
-							products[i].product_pictures[j].secure_url,
-							{
-								folder: `api/vinted-v2/offers/${newOffer._id}`,
-							}
-						);
+// 				// Uploader les images de chaque produit
+// 				newProduct_pictures = [];
+// 				for (let j = 0; j < products[i].product_pictures.length; j++) {
+// 					try {
+// 						const resultPictures = await cloudinary.uploader.upload(
+// 							products[i].product_pictures[j].secure_url,
+// 							{
+// 								folder: `api/vinted-v2/offers/${newOffer._id}`,
+// 							}
+// 						);
 
-						newProduct_pictures.push(resultPictures);
-					} catch (error) {
-						res.status(500).json({ message: error.message });
-					}
-				}
+// 						newProduct_pictures.push(resultPictures);
+// 					} catch (error) {
+// 						res.status(500).json({ message: error.message });
+// 					}
+// 				}
 
-				newOffer.product_image = resultImage;
-				newOffer.product_pictures = newProduct_pictures;
+// 				newOffer.product_image = resultImage;
+// 				newOffer.product_pictures = newProduct_pictures;
 
-				await newOffer.save();
-				console.log(`✅ offer saved : ${i + 1} / ${products.length}`);
-			} catch (error) {
-				res.status(500).json({ message: error.message });
-			}
-		}
-		res.send("Done !");
-		console.log(`🍺 All offers saved !`);
-	}
-});
+// 				await newOffer.save();
+// 				console.log(`✅ offer saved : ${i + 1} / ${products.length}`);
+// 			} catch (error) {
+// 				res.status(500).json({ message: error.message });
+// 			}
+// 		}
+// 		res.send("Done !");
+// 		console.log(`🍺 All offers saved !`);
+// 	}
+// });
 
 module.exports = router;
