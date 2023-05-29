@@ -180,6 +180,7 @@ router.post(
 							});
 							newOffer.product_image = result.secure_url;
 							newOffer.product_pictures.push(result.secure_url);
+              await newOffer.save();
 						} else {
 							const pictureToUpload = convertToBase64(picturesToUpdate[i]);
 
@@ -187,6 +188,7 @@ router.post(
 								folder: `vinted2/offers/${newOffer._id}`,
 							});
 							newOffer.product_pictures.push(result.secure_url);
+              await newOffer.save();
 						}
 					}
 				}
@@ -196,7 +198,6 @@ router.post(
 				);
 			}
 
-			console.log(newOffer);
 			return res.status(200).json({ message: "offre créée", Offre: newOffer });
 		} catch (error) {
 			console.log(error);
@@ -231,29 +232,29 @@ router.put(
 			const details = offerToModify.product_details;
 			for (i = 0; i < details.length; i++) {
 				// Pour chaque objet, si on a reçu un détail à modifier on met à jour la clef de l'objet
-				if (details[i].MARQUE) {
+				if (details[i].product_brand) {
 					if (req.body.brand) {
-						details[i].MARQUE = req.body.brand;
+						details[i].product_brand = req.body.brand;
 					}
 				}
-				if (details[i].TAILLE) {
+				if (details[i].product_size) {
 					if (req.body.size) {
-						details[i].TAILLE = req.body.size;
+						details[i].product_size = req.body.size;
 					}
 				}
-				if (details[i].ÉTAT) {
+				if (details[i].product_state) {
 					if (req.body.condition) {
-						details[i].ÉTAT = req.body.condition;
+						details[i].product_state = req.body.state;
 					}
 				}
-				if (details[i].COULEUR) {
+				if (details[i].product_color) {
 					if (req.body.color) {
-						details[i].COULEUR = req.body.color;
+						details[i].product_color = req.body.color;
 					}
 				}
-				if (details[i].EMPLACEMENT) {
-					if (req.body.location) {
-						details[i].EMPLACEMENT = req.body.location;
+				if (details[i].product_city) {
+					if (req.body.city) {
+						details[i].product_city = req.body.city;
 					}
 				}
 			}
@@ -261,23 +262,26 @@ router.put(
 			offerToModify.markModified("product_details");
 
 			// Si on reçoit une nouvelle photo
+
 			if (req.files?.picture) {
 				// On supprime l'ancienne
-				await cloudinary.uploader.destroy(
-					offerToModify.product_image.public_id
-				);
+				// await cloudinary.uploader.destroy(
+				// 	offerToModify.product_image
+				// );
+				// console.log(req.files.picture)
 				// On upload la nouvelle
 				const result = await cloudinary.uploader.upload(
 					convertToBase64(req.files.picture),
 					{
-						folder: `api/vinted-v2/offers/${offerToModify._id}`,
-						public_id: "preview",
+						folder: `vinted2/offers/${offerToModify._id}`,
 					}
 				);
 				// On remplace la clef product_image et le premier élément du tableau product_pictures
-				offerToModify.product_image = result;
-				offerToModify.product_pictures[0] = result;
+				offerToModify.product_image = result.secure_url;
+				offerToModify.product_pictures[0] = result.secure_url;
 			}
+			offerToModify.markModified("product_image");
+			offerToModify.markModified("product_picture");
 			// Sauvegarde de l'offre
 			await offerToModify.save();
 			res.status(200).json("Offer modified succesfully !");
