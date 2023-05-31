@@ -34,6 +34,7 @@ const Offer = require("../models/Offer");
 // déclaration de la route signup, utilisation de fileUpload pour réceptionner des formData
 router.post("/user/signup", fileUpload(), async (req, res) => {
   try {
+    console.log("premier consolelog")
     // Recherche dans la BDD. Est-ce qu'un utilisateur possède cet email ?
     const user = await User.findOne({ email: req.body.email });
 
@@ -46,7 +47,7 @@ router.post("/user/signup", fileUpload(), async (req, res) => {
       // l'utilisateur a-t-il bien envoyé les informations requises ?
       if (req.body.email && req.body.password && req.body.username) {
         // Si oui, on peut créer ce nouvel utilisateur
-
+        console.log("deuxième consolelog")
         // Étape 1 : encrypter le mot de passe
         // Générer le token et encrypter le mot de passe
         const token = uid2(64);
@@ -67,6 +68,7 @@ router.post("/user/signup", fileUpload(), async (req, res) => {
 
         // Si je reçois une image, je l'upload sur cloudinary et j'enregistre le résultat dans la clef avatar de la clef account de mon nouvel utilisateur
         if (req.files?.avatar) {
+          console.log("3 consolelog")
           const result = await cloudinary.uploader.upload(
             convertToBase64(req.files.avatar),
             {
@@ -76,7 +78,7 @@ router.post("/user/signup", fileUpload(), async (req, res) => {
           );
           newUser.account.avatar = result;
         }
-
+        console.log("4 consolelog")
         // Étape 3 : sauvegarder ce nouvel utilisateur dans la BDD
         await newUser.save();
         res.status(201).json({
