@@ -8,23 +8,20 @@ router.use(cors());
 const isAuthenticated = require("../middleware/isAuthenticated");
 
 router.post("/payment", isAuthenticated, async (req, res) => {
-    console.log("je passe ici");
-    console.log("pay, req.body", req.body);
+	console.log("pay, req.body", req.body);
 	try {
-		// const stripeToken = req.body.stripeToken;
-		
-		// const response = await stripe.charges.create({
-		// 	amount: req.body.amount,
-		// 	currency: "eur",
-		// 	description: req.body.title,
-		// 	source: stripeToken,
-		// });
-		// console.log(response.status);
-		res.json(response);
+		const stripeToken = req.body.stripeToken;
+
+		const response = await stripe.charges.create({
+			amount: req.body.amount,
+			currency: "eur",
+			description: req.body.title,
+			source: stripeToken,
+		});
+		console.log(response.status);
 	} catch (error) {
 		console.log("erreur", error);
 	}
 });
 
-
-module.exports = router; 
+module.exports = router;
