@@ -1,28 +1,30 @@
 const express = require("express");
-const router = express.Router();
-// const createStripe = require("stripe");
+const cors = require("cors");
+const stripe = require("stripe")("sk_test_votreCléPrivée");
+const router = express.Router(); // Utilisez express.Router() pour créer un routeur
+router.use(express.json());
+router.use(cors());
 
-/* Votre clé privée doit être indiquée ici */
-// const stripe = createStripe(process.env.STRIPE_API_SECRET);
+const isAuthenticated = require("../middleware/isAuthenticated");
 
-// router.post("/payment", async (req, res) => {
-//   console.log(req.body);
-//   try {
-//     // on envoie le token a Stripe avec le montant
-//     let { status } = await stripe.charges.create({
-//       amount: (req.body.amount * 100).toFixed(0),
-//       currency: "eur",
-//       description: `Paiement vinted pour : ${req.body.title}`,
-//       source: req.body.token,
-//     });
-//     // Le paiement a fonctionné
-//     // On peut mettre à jour la base de données
-//     // On renvoie une réponse au client pour afficher un message de statut
-//     res.json({ status });
-//   } catch (error) {
-//     console.log(error.message);
-//     res.status(500).json({ message: error.message });
-//   }
-// });
+router.post("/payment", isAuthenticated, async (req, res) => {
+    console.log("je passe ici");
+    console.log("pay, req.body", req.body);
+	try {
+		// const stripeToken = req.body.stripeToken;
+		
+		// const response = await stripe.charges.create({
+		// 	amount: req.body.amount,
+		// 	currency: "eur",
+		// 	description: req.body.title,
+		// 	source: stripeToken,
+		// });
+		// console.log(response.status);
+		res.json(response);
+	} catch (error) {
+		console.log("erreur", error);
+	}
+});
 
-module.exports = router;
+
+module.exports = router; 

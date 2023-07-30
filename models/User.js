@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const User = mongoose.model("User", {
   email: {
-    // unique : true permet de s'assurer que 2 users ne peuvent pas avoir le même email
     unique: true,
     type: String,
   },
