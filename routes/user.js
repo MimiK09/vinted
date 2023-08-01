@@ -14,7 +14,6 @@ const cloudinary = require("cloudinary").v2;
 const User = require("../models/User");
 const Offer = require("../models/Offer");
 
-// déclaration de la route signup, utilisation de fileUpload pour réceptionner des formData
 router.post("/user/signup", fileUpload(), async (req, res) => {
 	try {
 		console.log("premier consolelog");

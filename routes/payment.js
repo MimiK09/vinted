@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const stripe = require("stripe")("sk_test_votreCléPrivée");
-const router = express.Router(); // Utilisez express.Router() pour créer un routeur
+const router = express.Router(); 
 router.use(express.json());
 router.use(cors());
 
@@ -33,8 +33,7 @@ router.post("/payment", isAuthenticated, async (req, res) => {
         // RESTE A FAIRE
         // Etape 1 : récupérer l'offre
         // Etape 2 : la créer dans un autre modèle qu'on pourra appeler SoldOffer avec les donénes de l'acheteur
-        // Etape 2 bis : définir le modèle de SoldOffer
-        // Etape 3 : supprimer l'offre du modèle Offer
+        // Etape 3 : actualiser l'offre dans le modèle offer pour y faire figurer une nouvelle paire clef valeur de type "sold" (boolean)
 	} catch (error) {
 		console.log("erreur actualisation offre en BDD", error);
 	}

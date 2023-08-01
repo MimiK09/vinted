@@ -9,9 +9,7 @@ cloudinary.config({
 	api_secret: process.env.CLOUDINARY_API_KEY_SECRET,
 });
 
-// Import de express file upload
 const fileUpload = require("express-fileupload");
-// Import de la fonction convertToBase64
 const convertToBase64 = require("../utils/convertToBase64");
 
 const User = require("../models/User");
@@ -63,15 +61,9 @@ router.get("/offers", async (req, res) => {
 			.populate({
 				path: "owner",
 				select: "account",
-			})
-			.sort(sort)
-			.skip((page - 1) * limit) // ignorer les x résultats
-			.limit(limit); // renvoyer y résultats
-
-		const count = await Offer.countDocuments(filters);
+			});
 
 		res.json({
-			count: count,
 			offers: offers,
 		});
 	} catch (error) {
@@ -80,7 +72,6 @@ router.get("/offers", async (req, res) => {
 	}
 });
 
-// Route qui permmet de récupérer les informations d'une offre en fonction de son id. Cette route necessite un params
 router.get("/offer/:id", async (req, res) => {
 	try {
 		const offer = await Offer.findById(req.params.id).populate({
@@ -99,7 +90,6 @@ router.post(
 	isAuthenticated,
 	fileUpload(),
 	async (req, res) => {
-		// Route qui permet de poster une nouvelle annonce, elle utilise le middleware fileUpload afin de pouvoir lire les body de type formData. Seul quelqu'un de connecté peut faire cette requête.
 		try {
 			const userTofind = await User.findOne({
 				token: req.headers.authorization.replace("Bearer ", ""),
@@ -181,7 +171,6 @@ router.post(
 	}
 );
 
-// Route pour modifier une offre, elle prend un params, on utilise fileUpload pour lire les body de type formData. La route est protégée par le middleware isAuthenticated. Seul quelqu'un de connecté peut faire cette requête.
 router.put(
 	"/offer/update/:id",
 	isAuthenticated,
@@ -249,18 +238,13 @@ router.put(
 	}
 );
 
-// Route pour supprimer une offre, protégée par le middleware isAuthenticated, elle prend un params
 router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
 	try {
-		//Je supprime ce qui il y a dans le dossier portant le nom de l'id de l'offre sur cloudinary
 		await cloudinary.api.delete_resources_by_prefix(
 			`vinted2/offers/${req.params.id}`
 		);
-		//Une fois le dossier vide, je peux le supprimer !
 		await cloudinary.api.delete_folder(`vinted2/offers/${req.params.id}`);
-		// Je vais chercher l'offre dans mongoDB
 		offerToDelete = await Offer.findById(req.params.id);
-		// Je la supprime
 		await offerToDelete.delete();
 		res.status(200).json("Offer deleted succesfully !");
 	} catch (error) {
